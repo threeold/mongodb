@@ -1,104 +1,108 @@
 # mongodb基本语法
 ### 1、排序、条数
-    db.getCollection('browses').find({"umeng_device" : "Ahlx_YiLlCnPfFLiHnQ0oWQdGbPI_YsAMlgfbuIMTsDa"}).sort({"c_time":1}).limit(10)
+    db.getCollection('browses').find({"umeng_device" : "test"}).
+    sort({"c_time":1}).limit(10)
+    
+     db.getCollection('browses').find({"uid" : 704536,"website" : "mapi","c_time" : 1509432094}).
+     sort({"c_time":-1})
 
 
+### 3、group by 的用法
 
-db.getCollection('browses').find({"uid" : 704536,"website" : "mapi","c_time" : 1509432094}).sort({"c_time":-1})
-
-
-3、group by 的用法
-
-db.getCollection('browses').aggregate([
-    {$match : {uid:704536,activity_id:{$gt:"0",$lte:"288"}}},
-    {$group : {_id : "$activity_id", nums : {$sum : 1}}},
-    {$sort:{nums:-1}}
-    ]
+    db.getCollection('browses').aggregate([
+        {$match : {uid:704536,activity_id:{$gt:"0",$lte:"288"}}}, //条件
+        {$group : {_id : "$activity_id", nums : {$sum : 1}}}, 排序
+        {$sort:{nums:-1}}
+        ]
     )
 
 
 
-db.getCollection('browses').find({"c_time":{$gt:1509958800}}).count();
+	db.getCollection('browses').find({"c_time":{$gt:1509958800}}).count();
 
 
 
 
-4、多字段分组
-db.getCollection('browses').group(
-   {
-     key: { version: 1, 'platform': 1 },
-     cond: { uid: { $gt: 0} },
-     reduce: function( curr, result ) {
-                 result.total += 1;
-             },
-     initial: { total : 0 }
-   }
-)
+### 4、多字段分组
+	db.getCollection('browses').group(
+		{
+		    key: { version: 1, 'platform': 1 },
+		    cond: { uid: { $gt: 0} },
+		    reduce: function( curr, result ) {
+			 result.total += 1;
+		     },
+		    initial: { total : 0 }
+		 }
+	)
 
 
-5、连表、分组查询
+### 5、连表、分组查询
 
-db.getCollection('browses').aggregate([
-	{$lookup: {
-		from: "test",
-		localField: "opact",
-		foreignField: "opact",
-		as: "test"
- 	}}
-        ,{$match : {"test.opactname":"首页账户","uid":{$gt:0}}},
-        {$group : {_id : "$uid",nums : {$sum : 1}}},
-])
+	db.getCollection('browses').aggregate([
+		{$lookup: {
+			from: "test",
+			localField: "opact",
+			foreignField: "opact",
+			as: "test"
+		}}
+		,{$match : {"test.opactname":"首页账户","uid":{$gt:0}}},
+		{$group : {_id : "$uid",nums : {$sum : 1}}},
+	])
 
-6、多条件分组查询
+### 6、多条件分组查询
 
-db.getCollection('browses').aggregate([
-	{$lookup: {
-		from: "test",
-		localField: "opact",
-		foreignField: "opact",
-		as: "test"
- 	}}
-        ,{$match : {"test.opactname":"首页账户","uid":{$gt:0}}},
-        {$group : {_id : {_id: "$version", company: "$test.opactname"},nums : {$sum : 1}}},
-])
-
-
-6、db.users.aggregate([
-	{$unwind: "$acceptOrder"},
-	{$project: {_id: "$_id", acceptOrder: "$acceptOrder"}},
-	{$lookup: {
-		from: "orders",
-		localField: "acceptOrder",
-		foreignField: "_id",
-		as: "orders"
-	}},
-	{$unwind: "$orders"},
-	{$project: {_id: "$_id", haveNo: "$orders.haveNo"}},
-	{$unwind: "$haveNo"},
-	{$lookup: {
-		from: "rechargeorders",
-		localField: "haveNo",
-		foreignField: "_simcardId",
-		as: "rechargeOrders"
-	}},
-	{$unwind: "$rechargeOrders"},
-	{$match: { "rechargeOrders.paid": true, "rechargeOrders.createdAt": {$lt: ISODate("2017-01-11T00:00:00.000+08:00") }}},
-	{$project:  {_id: "$_id", fee: "$rechargeOrders.fee"}},
-	{$group: {
-		_id: {_id: "$_id", company: "$company"},
-		fee: {$sum: "$fee"},
-		count: {$sum: 1}
-	}}
-])
+	db.getCollection('browses').aggregate([
+		{$lookup: {
+			from: "test",
+			localField: "opact",
+			foreignField: "opact",
+			as: "test"
+		}}
+		,{$match : {"test.opactname":"首页账户","uid":{$gt:0}}},
+		{$group : {_id : {_id: "$version", company: "$test.opactname"},nums : {$sum : 1}}},
+	])
 
 
-分组带if的语句
-db.getCollection('order').aggregate([
-        {$match : {"uid":7,"status":2}},        
-        {$group : {_id : {uid: "$uid", "future_id": "$future_id"},"symbol": {$max:"$symbol"},nums : {$sum : {$cond: { if: { $eq: ['$order_type',1]}, then: "$nums", else: 0 }}}
-        ,sell_num : {$sum : {$cond: { if:{ $eq: ['$order_type',2]}, then: "$nums", else: 0 }}}
-        }}, 
-])
+### 6、db.users.aggregate([
+		{$unwind: "$acceptOrder"},
+		{$project: {_id: "$_id", acceptOrder: "$acceptOrder"}},
+		{$lookup: {
+			from: "orders",
+			localField: "acceptOrder",
+			foreignField: "_id",
+			as: "orders"
+		}},
+		{$unwind: "$orders"},
+		{$project: {_id: "$_id", haveNo: "$orders.haveNo"}},
+		{$unwind: "$haveNo"},
+		{$lookup: {
+			from: "rechargeorders",
+			localField: "haveNo",
+			foreignField: "_simcardId",
+			as: "rechargeOrders"
+		}},
+		{$unwind: "$rechargeOrders"},
+		{$match: { "rechargeOrders.paid": true, "rechargeOrders.createdAt": {$lt: ISODate("2017-01-11T00:00:00.000+08:00") }}},
+		{$project:  {_id: "$_id", fee: "$rechargeOrders.fee"}},
+		{$group: {
+			_id: {_id: "$_id", company: "$company"},
+			fee: {$sum: "$fee"},
+			count: {$sum: 1}
+		}}
+	])
+
+
+### 分组带if的语句
+	db.getCollection('order').aggregate([
+		{$match : {"uid":7,"status":2}},        
+		{$group : {
+			_id : {uid: "$uid", "future_id": "$future_id"},
+			"symbol": {$max:"$symbol"},
+			nums : {$sum : {$cond: { if: { $eq: ['$order_type',1]}, then: "$nums", else: 0 }}
+			}
+		,sell_num : {$sum : {$cond: { if:{ $eq: ['$order_type',2]}, then: "$nums", else: 0 }}}
+		}}, 
+	])
 
 
 if语句多个条件
